@@ -37,55 +37,75 @@ project/
 ```bash
 git clone https://github.com/HenryPhan05/Project1
 cd Project1
-2️⃣ Create Virtual Environment (Recommended)
+```
+
+### 2️⃣ Create Virtual Environment (Recommended)
+```bash
 python3 -m venv .venv
+```
 
 Activate it:
 
 Linux / Ubuntu:
-
+```bash
 source .venv/bin/activate
+```
 
 Windows (PowerShell):
-
+```bash
 .venv\Scripts\Activate.ps1
-3️⃣ Install Required Libraries
+```
+
+### 3️⃣ Install Required Libraries
+```bash
 pip install -r requirements.txt
+```
 
 If requirements.txt is missing:
-
+```bash
 pip install pandas matplotlib seaborn numpy
-4️⃣ Run the Analysis Script
+```
+
+### 4️⃣ Run the Analysis Script
+```bash
 python data_analysis.py
-📊 What the Script Does
-Data Cleaning
-Fill missing numeric values with column mean
-Analysis
-Average Protein, Carbs, Fat by diet type
-Top 5 protein-rich recipes per diet type
-Most common cuisine per diet type
-Highest protein recipe overall
-Feature Engineering
-Protein-to-Carbs ratio
-Carbs-to-Fat ratio
-📈 Visualizations
-Bar Chart → Average macronutrients per diet type
-Heatmap → Relationship between nutrients and diet types
-Scatter Plot → Top protein recipes across cuisines
+```
 
-Saved in /outputs folder.
+## 📊 What the Script Does
 
-📦 Requirements
+### Data Cleaning
+- Fill missing numeric values with column mean  
 
-Create requirements.txt:
+### Analysis
+- Average Protein, Carbs, Fat by diet type  
+- Top 5 protein-rich recipes per diet type  
+- Most common cuisine per diet type  
+- Highest protein recipe overall  
+
+### Feature Engineering
+- Protein-to-Carbs ratio  
+- Carbs-to-Fat ratio  
+
+## 📈 Visualizations
+
+- Bar Chart → Average macronutrients per diet type  
+- Heatmap → Relationship between nutrients and diet types  
+- Scatter Plot → Top protein recipes across cuisines  
+
+Saved in `/outputs` folder.
+
+## 📦 Requirements
+
+Create `requirements.txt`:
 
 pandas
 numpy
 matplotlib
 seaborn
 
-🖼️ Screenshots Requirement
-VS Code running code
-Terminal output
-Generated graphs
-System date & time visible (important for grading)
+## 🖼️ Screenshots Requirement
+
+- VS Code running code  
+- Terminal output  
+- Generated graphs  
+- System date & time visible (important for grading)
