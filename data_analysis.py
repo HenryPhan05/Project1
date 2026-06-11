@@ -2,6 +2,7 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 # load The dataset
+print("Start Running analysis...")
 path_to_csv = 'All_Diets.csv';
 df = pd.read_csv(path_to_csv);
 #handle missing data (fill missing values with mean)
@@ -17,4 +18,6 @@ df['Carbs_to_Fats_ratio'] = df['Carbs(g)'] / df['Fat(g)'];
 sns.barplot(x=avg_macros.index, y=avg_macros['Protein(g)']);
 plt.title('Average Protein by Diet Type');
 plt.ylabel('Average Protein (g)');
-plt.show();
+# for window: plt.show();
+plt.savefig("data_analysis.png")
+print("Running analysis...")
