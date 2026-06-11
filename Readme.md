@@ -1,4 +1,4 @@
-# 📊 Dataset Analysis and Insights (Task 1)
+# 📊 Dataset Analysis and Insights (Task 1 & 2)
 
 ## 👨‍💻 Project Overview
 
@@ -102,6 +102,7 @@ pandas
 numpy
 matplotlib
 seaborn
+docker
 
 ## 🖼️ Screenshots Requirement
 
