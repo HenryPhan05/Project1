@@ -6,6 +6,7 @@ print("=================================")
 print("STARTING DATA ANALYSIS")
 print("=================================")
 # load The dataset
+print("Start Running analysis...")
 path_to_csv = 'All_Diets.csv';
 df = pd.read_csv(path_to_csv);
 print(f"\nDataset loaded successfully.")
