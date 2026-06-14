@@ -7,8 +7,9 @@ print("STARTING DATA ANALYSIS")
 print("=================================")
 # load The dataset
 print("Start Running analysis...")
+start_time = pd.Timestamp.now()
 path_to_csv = 'All_Diets.csv';
-df = pd.read_csv(path_to_csv);
+df = pd.read_csv(path_to_csv, engine='pyarrow');
 print(f"\nDataset loaded successfully.")
 print(f"Rows: {df.shape[0]}")
 print(f"Columns: {df.shape[1]}")
@@ -130,6 +131,7 @@ print("Scatter plot saved.")
 print("\n=================================")
 print("ANALYSIS COMPLETE")
 print("=================================")
+print(f"Total execution time: {(pd.Timestamp.now() - start_time).total_seconds():.2f} seconds")
 
 print("\nGenerated files:")
 print("- average_macros.csv")

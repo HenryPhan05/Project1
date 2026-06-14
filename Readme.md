@@ -63,7 +63,7 @@ pip install -r requirements.txt
 
 If requirements.txt is missing:
 ```bash
-pip install pandas matplotlib seaborn numpy
+pip install pandas matplotlib seaborn numpy pyarrow
 ```
 
 ### 4️⃣ Run the Analysis Script
@@ -103,6 +103,7 @@ numpy
 matplotlib
 seaborn
 docker
+pyarrow
 
 ## 🖼️ Screenshots Requirement
 
