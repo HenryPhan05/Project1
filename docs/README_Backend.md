@@ -1,25 +1,31 @@
 # README – Backend (Azure Function) 🔧
-**Vai trò:** Backend Developer
-**Mục tiêu:** Chuyển `data_analysis.py` + `lambda_function.py` (Phase 1) thành một **Azure Function HTTP Trigger** thật, đọc `All_Diets.csv` từ Azure Blob Storage (cloud) và trả JSON cho dashboard.
+
+**Vai trò:** Backend Developer **Mục tiêu:** Chuyển `data_analysis.py` + `lambda_function.py` (Phase 1) thành một **Azure Function HTTP Trigger** thật, đọc `All_Diets.csv` từ Azure Blob Storage (cloud) và trả JSON cho dashboard.
 
 > 📌 Đã xem code thật trong repo (`HenryPhan05/Project1`). Dataset thật có các cột: `Diet_type, Recipe_name, Cuisine_type, Protein(g), Carbs(g), Fat(g), Extraction_day, Extraction_time` — 7,806 dòng dữ liệu. Code mẫu dưới đây dùng đúng tên cột này.
 
 ---
 
 ## ⚠️ Việc quan trọng cần đổi so với Phase 1
+
 `lambda_function.py` ở Phase 1 đẩy kết quả lên **Firebase Firestore**. Rubric Phase 2 chấm điểm "Integration" dựa trên việc **frontend fetch trực tiếp từ Azure Function endpoint**, nên Firebase không còn cần thiết — Function sẽ **trả JSON ngay trong response** thay vì lưu vào DB khác. Việc này cũng đơn giản hoá kiến trúc, dễ demo hơn.
 
 ---
 
 ## 0. Chuẩn bị công cụ
+
 - [ ] Python 3.9–3.11
+
 - [ ] Azure Functions Core Tools v4: `npm install -g azure-functions-core-tools@4 --unsafe-perm true`
+
 - [ ] Azure CLI: `az login`
+
 - [ ] Azurite (test local trước khi deploy): `npm install -g azurite`
 
 ---
 
 ## 1. Clone repo và tạo project Function mới
+
 ```bash
 git clone https://github.com/HenryPhan05/Project1
 cd Project1
@@ -27,11 +33,13 @@ func init AzureFunction --python
 cd AzureFunction
 func new --name GetDietAnalysis --template "HTTP trigger" --authlevel "anonymous"
 ```
+
 Dùng **Python v2 programming model** → toàn bộ function nằm trong `function_app.py`.
 
 ---
 
 ## 2. Viết `function_app.py` (tái sử dụng logic từ `data_analysis.py`)
+
 ```python
 import azure.functions as func
 import pandas as pd
@@ -103,16 +111,19 @@ def GetDietAnalysis(req: func.HttpRequest) -> func.HttpResponse:
 ---
 
 ## 3. `requirements.txt`
+
 ```
 azure-functions
 pandas
 azure-storage-blob
 ```
+
 (Bỏ `pyarrow` nếu không dùng `engine='pyarrow'` khi đọc CSV trên Function — giữ dependency gọn giúp cold-start nhanh hơn, cũng là một điểm cộng nhỏ về "Cloud Practices".)
 
 ---
 
 ## 4. Test local bằng Azurite
+
 ```bash
 azurite --silent --location ./azurite-data &
 # Tạo container + upload CSV vào Azurite để test giống hệt cloud thật
@@ -121,9 +132,11 @@ az storage blob upload --container-name diet-data --name All_Diets.csv --file ..
 
 func start
 ```
+
 Test: `http://localhost:7071/api/GetDietAnalysis`
 
 `local.settings.json`:
+
 ```json
 {
   "IsEncrypted": false,
@@ -134,15 +147,19 @@ Test: `http://localhost:7071/api/GetDietAnalysis`
   }
 }
 ```
+
 ⚠️ Không push file này lên GitHub (đã nằm trong `.gitignore` mặc định của `func init`).
 
 ---
 
 ## 5. Deploy lên Azure (sau khi bạn Deployment tạo xong Function App)
+
 ```bash
 func azure functionapp publish <TÊN_FUNCTION_APP_TRÊN_AZURE>
 ```
+
 Cập nhật connection string trỏ về Storage Account thật:
+
 ```bash
 az functionapp config appsettings set \
   --name <TÊN_FUNCTION_APP> \
@@ -153,16 +170,21 @@ az functionapp config appsettings set \
 ---
 
 ## 6. Test endpoint thật + gửi URL cho Frontend
+
 ```
 https://<TÊN_FUNCTION_APP>.azurewebsites.net/api/GetDietAnalysis
 ```
-- [ ] Trả JSON đúng, có `avg_macros`, `top_protein`, `common_cuisine`, `avg_ratios`, `execution_time_seconds`
+
+- [x] Trả JSON đúng, có `avg_macros`, `top_protein`, `common_cuisine`, `avg_ratios`, `execution_time_seconds`
+
 - [ ] CORS bật (Azure Portal → Function App → CORS)
+
 - [ ] Test cả trường hợp lỗi (vd đổi tên container sai) để chắc endpoint trả lỗi rõ ràng, không crash trắng trang
 
 ---
 
 ## ✅ Mẹo để tối đa điểm phần Backend
+
 - Đừng hardcode connection string trong code — luôn đọc từ `os.environ`. Giám khảo thường soi kỹ điểm này ở mục "Cloud Practices".
 - Có `try/except` trả lỗi JSON rõ ràng (đã có ở code mẫu) thay vì để Function trả lỗi 500 mặc định của Azure.
 - Trả thêm field `row_count` và `execution_time_seconds` — vừa đáp ứng yêu cầu "metadata" của dashboard, vừa cho thấy các bạn hiểu rõ Function đang làm gì.
@@ -170,8 +192,13 @@ https://<TÊN_FUNCTION_APP>.azurewebsites.net/api/GetDietAnalysis
 - Chụp lại Postman/browser request + response JSON để bỏ vào Documentation PDF.
 
 ## Checklist hoàn thành
-- [ ] Function chạy local với Azurite, dùng đúng tên cột dataset thật
-- [ ] Function đọc dữ liệu từ Azure Blob Storage thật (không phải Azurite, không phải Firebase)
-- [ ] Trả JSON đầy đủ + xử lý lỗi
+
+- [x] Function chạy local với Azurite, dùng đúng tên cột dataset thật
+
+- [x] Function đọc dữ liệu từ Azure Blob Storage thật (không phải Azurite, không phải Firebase)
+
+- [x] Trả JSON đầy đủ + xử lý lỗi
+
 - [ ] Deploy thành công, có URL công khai, CORS hoạt động
+
 - [ ] Đã gửi URL cho Frontend và test thử fetch thành công

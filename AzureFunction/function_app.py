@@ -12,7 +12,7 @@ app = func.FunctionApp()
 def GetDietAnalysis(req: func.HttpRequest) -> func.HttpResponse:
     start_time = time.time()
     try:
-        conn_str = os.environ("AZURE_STORAGE_CONNECTION_STRING")
+        conn_str = os.environ["AZURE_STORAGE_CONNECTION_STRING"]
         container_name = "diet-data"
         blob_name = "All_Diets.csv"
 
