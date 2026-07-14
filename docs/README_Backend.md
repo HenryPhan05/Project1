@@ -1,31 +1,25 @@
 # README – Backend (Azure Function) 🔧
+**Role:** Backend Developer
+**Goal:** Turn `data_analysis.py` + `lambda_function.py` (Phase 1) into a real **Azure Function HTTP Trigger** that reads `All_Diets.csv` from Azure Blob Storage (cloud) and returns JSON to the dashboard.
 
-**Vai trò:** Backend Developer **Mục tiêu:** Chuyển `data_analysis.py` + `lambda_function.py` (Phase 1) thành một **Azure Function HTTP Trigger** thật, đọc `All_Diets.csv` từ Azure Blob Storage (cloud) và trả JSON cho dashboard.
-
-> 📌 Đã xem code thật trong repo (`HenryPhan05/Project1`). Dataset thật có các cột: `Diet_type, Recipe_name, Cuisine_type, Protein(g), Carbs(g), Fat(g), Extraction_day, Extraction_time` — 7,806 dòng dữ liệu. Code mẫu dưới đây dùng đúng tên cột này.
-
----
-
-## ⚠️ Việc quan trọng cần đổi so với Phase 1
-
-`lambda_function.py` ở Phase 1 đẩy kết quả lên **Firebase Firestore**. Rubric Phase 2 chấm điểm "Integration" dựa trên việc **frontend fetch trực tiếp từ Azure Function endpoint**, nên Firebase không còn cần thiết — Function sẽ **trả JSON ngay trong response** thay vì lưu vào DB khác. Việc này cũng đơn giản hoá kiến trúc, dễ demo hơn.
+> 📌 Already reviewed the real code in the repo (`HenryPhan05/Project1`). The real dataset has the following columns: `Diet_type, Recipe_name, Cuisine_type, Protein(g), Carbs(g), Fat(g), Extraction_day, Extraction_time` — 7,806 rows of data. The sample code below uses these exact column names.
 
 ---
 
-## 0. Chuẩn bị công cụ
+## ⚠️ Important change compared to Phase 1
+In Phase 1, `lambda_function.py` pushed results to **Firebase Firestore**. The Phase 2 rubric grades "Integration" based on the **frontend fetching directly from the Azure Function endpoint**, so Firebase is no longer needed — the Function will **return JSON directly in the response** instead of saving to another DB. This also simplifies the architecture and makes it easier to demo.
 
+---
+
+## 0. Tool setup
 - [ ] Python 3.9–3.11
-
 - [ ] Azure Functions Core Tools v4: `npm install -g azure-functions-core-tools@4 --unsafe-perm true`
-
 - [ ] Azure CLI: `az login`
-
-- [ ] Azurite (test local trước khi deploy): `npm install -g azurite`
+- [ ] Azurite (for local testing before deploying): `npm install -g azurite`
 
 ---
 
-## 1. Clone repo và tạo project Function mới
-
+## 1. Clone the repo and create a new Function project
 ```bash
 git clone https://github.com/HenryPhan05/Project1
 cd Project1
@@ -33,13 +27,11 @@ func init AzureFunction --python
 cd AzureFunction
 func new --name GetDietAnalysis --template "HTTP trigger" --authlevel "anonymous"
 ```
-
-Dùng **Python v2 programming model** → toàn bộ function nằm trong `function_app.py`.
+Use the **Python v2 programming model** → the entire function lives in `function_app.py`.
 
 ---
 
-## 2. Viết `function_app.py` (tái sử dụng logic từ `data_analysis.py`)
-
+## 2. Write `function_app.py` (reusing logic from `data_analysis.py`)
 ```python
 import azure.functions as func
 import pandas as pd
@@ -64,7 +56,7 @@ def GetDietAnalysis(req: func.HttpRequest) -> func.HttpResponse:
         df = pd.read_csv(BytesIO(download_stream.readall()))
         df.fillna(df.mean(numeric_only=True), inplace=True)
 
-        # Filter tuỳ chọn: ?diet_type=paleo
+        # Optional filter: ?diet_type=paleo
         diet_filter = req.params.get("diet_type")
         if diet_filter:
             df = df[df["Diet_type"].str.lower() == diet_filter.lower()]
@@ -74,7 +66,7 @@ def GetDietAnalysis(req: func.HttpRequest) -> func.HttpResponse:
                          .groupby("Diet_type").head(5)[["Diet_type", "Recipe_name", "Protein(g)"]])
         common_cuisine = df.groupby("Diet_type")["Cuisine_type"].agg(lambda x: x.mode()[0]).reset_index()
 
-        # Thêm 2 metric mới từ Phase 1 (Protein-to-Carbs, Carbs-to-Fat) để dashboard có nhiều insight hơn
+        # Add 2 new metrics from Phase 1 (Protein-to-Carbs, Carbs-to-Fat) so the dashboard has more insights
         df["Protein_to_Carbs_ratio"] = df["Protein(g)"] / df["Carbs(g)"]
         df["Carbs_to_Fats_ratio"] = df["Carbs(g)"] / df["Fat(g)"]
         avg_ratios = df.groupby("Diet_type")[["Protein_to_Carbs_ratio", "Carbs_to_Fats_ratio"]].mean().reset_index()
@@ -96,8 +88,8 @@ def GetDietAnalysis(req: func.HttpRequest) -> func.HttpResponse:
         )
 
     except Exception as e:
-        # Trả lỗi rõ ràng thay vì để Azure trả 500 mặc định — giúp debug nhanh và
-        # cũng là điểm cộng cho "Cloud Practices" (xử lý lỗi đàng hoàng)
+        # Return a clear error instead of letting Azure return a default 500 — helps debug faster
+        # and is also a plus point for "Cloud Practices" (proper error handling)
         return func.HttpResponse(
             json.dumps({"error": str(e)}),
             status_code=500,
@@ -106,37 +98,32 @@ def GetDietAnalysis(req: func.HttpRequest) -> func.HttpResponse:
         )
 ```
 
-> 💡 Việc thêm `avg_ratios` (2 metric mới từ Phase 1) vào response giúp dashboard có thêm dữ liệu để vẽ biểu đồ thứ 4 nếu muốn — dư ra một chút so với yêu cầu tối thiểu "3 visualizations" luôn ăn điểm tốt hơn khi chấm.
+> 💡 Adding `avg_ratios` (2 new metrics from Phase 1) to the response gives the dashboard extra data to draw a 4th chart if desired — going a bit beyond the minimum "3 visualizations" requirement usually scores better.
 
 ---
 
 ## 3. `requirements.txt`
-
 ```
 azure-functions
 pandas
 azure-storage-blob
 ```
-
-(Bỏ `pyarrow` nếu không dùng `engine='pyarrow'` khi đọc CSV trên Function — giữ dependency gọn giúp cold-start nhanh hơn, cũng là một điểm cộng nhỏ về "Cloud Practices".)
+(Remove `pyarrow` if you're not using `engine='pyarrow'` when reading the CSV in the Function — keeping dependencies lean helps cold-start speed, which is also a small plus for "Cloud Practices".)
 
 ---
 
-## 4. Test local bằng Azurite
-
+## 4. Local testing with Azurite
 ```bash
 azurite --silent --location ./azurite-data &
-# Tạo container + upload CSV vào Azurite để test giống hệt cloud thật
+# Create a container + upload the CSV into Azurite to test just like in real cloud
 az storage container create --name diet-data --connection-string "UseDevelopmentStorage=true"
 az storage blob upload --container-name diet-data --name All_Diets.csv --file ../All_Diets.csv --connection-string "UseDevelopmentStorage=true"
 
 func start
 ```
-
 Test: `http://localhost:7071/api/GetDietAnalysis`
 
 `local.settings.json`:
-
 ```json
 {
   "IsEncrypted": false,
@@ -147,58 +134,44 @@ Test: `http://localhost:7071/api/GetDietAnalysis`
   }
 }
 ```
-
-⚠️ Không push file này lên GitHub (đã nằm trong `.gitignore` mặc định của `func init`).
+⚠️ Do not push this file to GitHub (it's already in the default `.gitignore` created by `func init`).
 
 ---
 
-## 5. Deploy lên Azure (sau khi bạn Deployment tạo xong Function App)
-
+## 5. Deploy to Azure (after your Deployment person has created the Function App)
 ```bash
-func azure functionapp publish <TÊN_FUNCTION_APP_TRÊN_AZURE>
+func azure functionapp publish <YOUR_FUNCTION_APP_NAME_ON_AZURE>
 ```
-
-Cập nhật connection string trỏ về Storage Account thật:
-
+Update the connection string to point to the real Storage Account:
 ```bash
 az functionapp config appsettings set \
-  --name <TÊN_FUNCTION_APP> \
+  --name <FUNCTION_APP_NAME> \
   --resource-group diet-analysis-rg \
-  --settings AZURE_STORAGE_CONNECTION_STRING="<connection string thật>"
+  --settings AZURE_STORAGE_CONNECTION_STRING="<real connection string>"
 ```
 
 ---
 
-## 6. Test endpoint thật + gửi URL cho Frontend
-
+## 6. Test the real endpoint + send the URL to Frontend
 ```
-https://<TÊN_FUNCTION_APP>.azurewebsites.net/api/GetDietAnalysis
+https://<FUNCTION_APP_NAME>.azurewebsites.net/api/GetDietAnalysis
 ```
-
-- [x] Trả JSON đúng, có `avg_macros`, `top_protein`, `common_cuisine`, `avg_ratios`, `execution_time_seconds`
-
-- [ ] CORS bật (Azure Portal → Function App → CORS)
-
-- [ ] Test cả trường hợp lỗi (vd đổi tên container sai) để chắc endpoint trả lỗi rõ ràng, không crash trắng trang
+- [ ] Returns correct JSON, including `avg_macros`, `top_protein`, `common_cuisine`, `avg_ratios`, `execution_time_seconds`
+- [ ] CORS enabled (Azure Portal → Function App → CORS)
+- [ ] Test the error case too (e.g. change the container name to a wrong one) to make sure the endpoint returns a clear error instead of crashing with a blank page
 
 ---
 
-## ✅ Mẹo để tối đa điểm phần Backend
+## ✅ Tips to maximize the Backend score
+- Don't hardcode the connection string in code — always read it from `os.environ`. Graders often scrutinize this closely under "Cloud Practices".
+- Have a `try/except` that returns a clear JSON error (already in the sample code) instead of letting the Function return Azure's default 500 error.
+- Return additional `row_count` and `execution_time_seconds` fields — this both meets the dashboard's "metadata" requirement and shows that you understand what the Function is doing.
+- If you have time, add a secondary `/api/health` endpoint that returns `{"status": "ok"}` — useful for quickly demoing that the Function has deployed successfully without needing to read the whole CSV, very handy during presentations.
+- Take screenshots of Postman/browser request + response JSON to include in the Documentation PDF.
 
-- Đừng hardcode connection string trong code — luôn đọc từ `os.environ`. Giám khảo thường soi kỹ điểm này ở mục "Cloud Practices".
-- Có `try/except` trả lỗi JSON rõ ràng (đã có ở code mẫu) thay vì để Function trả lỗi 500 mặc định của Azure.
-- Trả thêm field `row_count` và `execution_time_seconds` — vừa đáp ứng yêu cầu "metadata" của dashboard, vừa cho thấy các bạn hiểu rõ Function đang làm gì.
-- Nếu có thời gian, thêm 1 endpoint phụ `/api/health` trả `{"status": "ok"}` — dùng để demo nhanh Function đã deploy thành công mà không cần đọc cả CSV, rất hữu ích lúc trình bày.
-- Chụp lại Postman/browser request + response JSON để bỏ vào Documentation PDF.
-
-## Checklist hoàn thành
-
-- [x] Function chạy local với Azurite, dùng đúng tên cột dataset thật
-
-- [x] Function đọc dữ liệu từ Azure Blob Storage thật (không phải Azurite, không phải Firebase)
-
-- [x] Trả JSON đầy đủ + xử lý lỗi
-
-- [ ] Deploy thành công, có URL công khai, CORS hoạt động
-
-- [ ] Đã gửi URL cho Frontend và test thử fetch thành công
+## Completion checklist
+- [ ] Function runs locally with Azurite, using the correct real dataset column names
+- [ ] Function reads data from real Azure Blob Storage (not Azurite, not Firebase)
+- [ ] Returns complete JSON + handles errors
+- [ ] Successfully deployed, has a public URL, CORS working
+- [ ] URL sent to Frontend and fetch tested successfully
