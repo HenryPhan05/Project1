@@ -15,7 +15,7 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v3
 
-      # Step 2: Ensure Python files have valid syntax (Simulated Check)
+      # Step 2: Ensure Python files have valid syntax
       - name: Run Syntax Check
         run: |
           python -m py_compile data_analysis.py
@@ -35,11 +35,3 @@ jobs:
           context: .
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/diet-analysis:latest
-          
-      # New Step: Tell Azure to pull the new container image
-      - name: Deploy to Azure Function App
-        uses: Azure/functions-container-action@v1
-        with:
-          app-name: 'diet-analysis-app-docker'
-          publish-profile: ${{ secrets.AZURE_FUNCTIONAPP_PUBLISH_PROFILE }}
-          image: '${{ secrets.DOCKER_USERNAME }}/diet-analysis:latest'
