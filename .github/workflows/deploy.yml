@@ -38,8 +38,8 @@ jobs:
           
       # New Step: Tell Azure to pull the new container image
       - name: Deploy to Azure Function App
-        uses: azure/webapps-deploy@v2
+        uses: Azure/functions-container-action@v1
         with:
           app-name: 'diet-analysis-app-docker'
           publish-profile: ${{ secrets.AZURE_FUNCTIONAPP_PUBLISH_PROFILE }}
-          images: '${{ secrets.DOCKER_USERNAME }}/diet-analysis:latest'
+          image: '${{ secrets.DOCKER_USERNAME }}/diet-analysis:latest
