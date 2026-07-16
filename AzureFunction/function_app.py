@@ -35,6 +35,8 @@ def GetDietAnalysis(req: func.HttpRequest) -> func.HttpResponse:
         # add 2 new metrics from phase 1 (protein-to-carbs, carbs-to-fat) to dashboard
         df["Protein_to_Carbs_ratio"] = df["Protein(g)"] / df["Carbs(g)"]
         df["Carbs_to_Fats_ratio"] = df["Carbs(g)"] / df["Fat(g)"]
+        # FIX: Clean up division by zero (Infinity) before grouping
+        df.replace([float('inf'), float('-inf')], 0, inplace=True)
         avg_ratios = df.groupby("Diet_type")[["Protein_to_Carbs_ratio", "Carbs_to_Fats_ratio"]].mean().reset_index()
 
         result = {
