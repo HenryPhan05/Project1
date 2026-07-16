@@ -1,9 +1,8 @@
-FROM python:3.9-slim
+FROM mcr.microsoft.com/azure-functions/python:4-python3.9
 
-WORKDIR /app
+ENV AzureWebJobsScriptRoot=/home/site/wwwroot \
+    AzureFunctionsJobHost__Logging__Console__IsEnabled=true
 
-COPY . /app
+RUN pip install azure-functions pandas matplotlib seaborn azure-storage-blob
 
-RUN pip install pandas matplotlib seaborn
-
-CMD ["python", "data_analysis.py"]
+COPY ./AzureFunction /home/site/wwwroot
