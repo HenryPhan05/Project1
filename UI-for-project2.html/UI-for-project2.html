@@ -1,0 +1,176 @@
+﻿<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Nutritional Insights</title>
+    <!-- Tailwind CSS CDN -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/tailwindcss@2.0.0/dist/tailwind.min.css"
+      rel="stylesheet"
+    />
+  </head>
+  <body class="bg-gray-100">
+    <header class="bg-blue-600 p-4 text-white">
+      <h1 class="text-3xl font-semibold">Nutritional Insights</h1>
+    </header>
+
+    <main class="container mx-auto p-6">
+      <section class="mb-8">
+        <h2 class="text-2xl font-semibold mb-4">
+          Explore Nutritional Insights
+        </h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div class="bg-white p-4 shadow-lg rounded-lg">
+            <h3 class="font-semibold">Bar Chart</h3>
+            <p class="text-sm text-gray-600">
+              Average macronutrient content by diet type.
+            </p>
+            <div class="relative h-64 w-full mt-4">
+              <canvas id="barChart"></canvas>
+            </div>
+          </div>
+
+          <div class="bg-white p-4 shadow-lg rounded-lg">
+            <h3 class="font-semibold">Scatter Plot</h3>
+            <p class="text-sm text-gray-600">
+              Nutrient relationships (e.g., protein vs carbs).
+            </p>
+            <canvas id="scatterPlot" class="w-full h-48"></canvas>
+          </div>
+
+          <div class="bg-white p-4 shadow-lg rounded-lg">
+            <h3 class="font-semibold">Heatmap</h3>
+            <p class="text-sm text-gray-600">Nutrient correlations.</p>
+            <div id="heatmap" class="w-full h-48"></div>
+          </div>
+
+          <div class="bg-white p-4 shadow-lg rounded-lg">
+            <h3 class="font-semibold">Pie Chart</h3>
+            <p class="text-sm text-gray-600">
+              Recipe distribution by diet type.
+            </p>
+            <canvas id="pieChart" class="w-full h-48"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <section class="mb-8">
+        <h2 class="text-2xl font-semibold mb-4">
+          Filters and Data Interaction
+        </h2>
+        <div class="flex flex-wrap gap-4">
+          <input
+            type="text"
+            placeholder="Search by Diet Type"
+            class="p-2 border rounded w-full sm:w-auto"
+          />
+          <select class="p-2 border rounded w-full sm:w-auto">
+            <option value="all">All Diet Types</option>
+            <option value="vegan">Vegan</option>
+            <option value="keto">Keto</option>
+            <!-- Add more options -->
+          </select>
+        </div>
+      </section>
+
+      <section class="mb-8">
+        <h2 class="text-2xl font-semibold mb-4">API Data Interaction</h2>
+        <div class="flex flex-wrap gap-4">
+          <button class="bg-blue-600 text-white py-2 px-4 rounded">
+            Get Nutritional Insights
+          </button>
+          <button class="bg-green-600 text-white py-2 px-4 rounded">
+            Get Recipes
+          </button>
+          <button class="bg-purple-600 text-white py-2 px-4 rounded">
+            Get Clusters
+          </button>
+        </div>
+      </section>
+
+      <section>
+        <h2 class="text-2xl font-semibold mb-4">Pagination</h2>
+        <div class="flex justify-center gap-2 mt-4">
+          <button class="px-3 py-1 bg-gray-300 rounded hover:bg-gray-400">
+            Previous
+          </button>
+          <button class="px-3 py-1 bg-blue-600 text-white rounded">1</button>
+          <button class="px-3 py-1 bg-gray-300 rounded hover:bg-gray-400">
+            2
+          </button>
+          <button class="px-3 py-1 bg-gray-300 rounded hover:bg-gray-400">
+            Next
+          </button>
+        </div>
+      </section>
+    </main>
+
+    <footer class="bg-blue-600 p-4 text-white text-center mt-10">
+      <p>&copy; 2025 Nutritional Insights. All Rights Reserved.</p>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Custom JavaScript Engine -->
+    <script>
+      const apiUrl =
+        "https://diet-analysis-app-docker-gqaea8h7g7ahhdcf.eastus-01.azurewebsites.net/api/GetDietAnalysis";
+
+      // Find the "Get Nutritional Insights" button
+      const insightsBtn = document.querySelector(
+        "button.bg-blue-600.text-white",
+      );
+
+      // Add an event listener to trigger when the button is clicked
+      insightsBtn.addEventListener("click", async () => {
+        try {
+          // Change button text to show it is loading
+          insightsBtn.textContent = "Loading Data from Cloud...";
+
+          // FETCH COMMAND: Reach out to your Python Azure Function
+          const response = await fetch(apiUrl);
+          const data = await response.json();
+
+          // Extract the specific data we need from the JSON response
+          // Looking into "avg_macros" to get diet names and protein values
+          const dietTypes = data.avg_macros.map((item) => item.Diet_type);
+          const proteinValues = data.avg_macros.map(
+            (item) => item["Protein(g)"],
+          );
+
+          // DRAW THE CHART: Select the barChart canvas and render the data
+          const ctx = document.getElementById("barChart").getContext("2d");
+          new Chart(ctx, {
+            type: "bar",
+            data: {
+              labels: dietTypes,
+              datasets: [
+                {
+                  label: "Average Protein (g)",
+                  data: proteinValues,
+                  backgroundColor: "rgba(59, 130, 246, 0.7)", // Tailwind Blue-600
+                  borderColor: "rgba(37, 99, 235, 1)",
+                  borderWidth: 1,
+                },
+              ],
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+            },
+          });
+
+          // Reset button text
+          insightsBtn.textContent = "Get Nutritional Insights";
+        } catch (error) {
+          console.error("Error fetching data from Azure:", error);
+          alert(
+            "Failed to connect to the API. Did you replace YOUR_AZURE_FUNCTION_URL?",
+          );
+          insightsBtn.textContent = "Get Nutritional Insights";
+        }
+      });
+    </script>
+  </body>
+</html>
