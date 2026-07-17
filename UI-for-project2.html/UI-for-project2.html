@@ -31,12 +31,14 @@
             </div>
           </div>
 
-          <div class="bg-white p-4 shadow-lg rounded-lg">
+          <div class="bg-white p-4 shadow-lg rounded-lg overflow-hidden">
             <h3 class="font-semibold">Scatter Plot</h3>
             <p class="text-sm text-gray-600">
               Nutrient relationships (e.g., protein vs carbs).
             </p>
-            <canvas id="scatterPlot" class="w-full h-48"></canvas>
+            <div class="relative h-48 w-full mt-4 overflow-hidden">
+              <canvas id="scatterPlot" class="w-full h-full"></canvas>
+            </div>
           </div>
 
           <div class="bg-white p-4 shadow-lg rounded-lg">
@@ -45,12 +47,14 @@
             <div id="heatmap" class="w-full h-48"></div>
           </div>
 
-          <div class="bg-white p-4 shadow-lg rounded-lg">
+          <div class="bg-white p-4 shadow-lg rounded-lg overflow-hidden">
             <h3 class="font-semibold">Pie Chart</h3>
             <p class="text-sm text-gray-600">
               Recipe distribution by diet type.
             </p>
-            <canvas id="pieChart" class="w-full h-48"></canvas>
+            <div class="relative h-48 w-full mt-4 overflow-hidden">
+              <canvas id="pieChart" class="w-full h-full"></canvas>
+            </div>
           </div>
         </div>
       </section>
@@ -61,15 +65,18 @@
         </h2>
         <div class="flex flex-wrap gap-4">
           <input
+            id="dietSearchInput"
             type="text"
             placeholder="Search by Diet Type"
             class="p-2 border rounded w-full sm:w-auto"
           />
-          <select class="p-2 border rounded w-full sm:w-auto">
+          <select id="dietFilter" class="p-2 border rounded w-full sm:w-auto">
             <option value="all">All Diet Types</option>
             <option value="vegan">Vegan</option>
             <option value="keto">Keto</option>
-            <!-- Add more options -->
+            <option value="paleo">Paleo</option>
+            <option value="mediterranean">Mediterranean</option>
+            <option value="dash">Dash</option>
           </select>
         </div>
       </section>
@@ -117,10 +124,24 @@
       const apiUrl =
         "https://diet-analysis-app-docker-gqaea8h7g7ahhdcf.eastus-01.azurewebsites.net/api/GetDietAnalysis";
 
+      // Initialize chart instance variables
+      let barChart = null;
+      let scatterChart = null;
+      let pieChart = null;
+
       // Find the "Get Nutritional Insights" button
       const insightsBtn = document.querySelector(
         "button.bg-blue-600.text-white",
       );
+      const dietFilter = document.getElementById("dietFilter");
+      const dietSearchInput = document.getElementById("dietSearchInput");
+
+      // Allows us to remove existing chart instances so that it can create new charts. Called before creating a new chart when calling the api.
+      function destroyChart(chartInstance) {
+        if (chartInstance) {
+          chartInstance.destroy();
+        }
+      }
 
       // Add an event listener to trigger when the button is clicked
       insightsBtn.addEventListener("click", async () => {
@@ -128,8 +149,15 @@
           // Change button text to show it is loading
           insightsBtn.textContent = "Loading Data from Cloud...";
 
+          const selectedDiet = (dietFilter?.value || "all").trim().toLowerCase();
+          const typedDiet = (dietSearchInput?.value || "").trim().toLowerCase();
+          const filterValue = typedDiet || (selectedDiet === "all" ? "" : selectedDiet);
+          const requestUrl = filterValue
+            ? `${apiUrl}?diet_type=${encodeURIComponent(filterValue)}`
+            : apiUrl;
+
           // FETCH COMMAND: Reach out to your Python Azure Function
-          const response = await fetch(apiUrl);
+          const response = await fetch(requestUrl);
           const data = await response.json();
 
           // Extract the specific data we need from the JSON response
@@ -141,7 +169,8 @@
 
           // DRAW THE CHART: Select the barChart canvas and render the data
           const ctx = document.getElementById("barChart").getContext("2d");
-          new Chart(ctx, {
+          destroyChart(barChart);
+          barChart = new Chart(ctx, {
             type: "bar",
             data: {
               labels: dietTypes,
@@ -158,6 +187,126 @@
             options: {
               responsive: true,
               maintainAspectRatio: false,
+            },
+          });
+
+          // Generate scatter plot based on the same average macro data
+          const scatterCtx = document.getElementById("scatterPlot").getContext("2d");
+          destroyChart(scatterChart);
+          scatterChart = new Chart(scatterCtx, {
+            type: "scatter",
+            data: {
+              datasets: [
+                {
+                  label: "Protein vs Carbs",
+                  data: data.avg_macros.map((item) => ({
+                    x: item["Carbs(g)"],
+                    y: item["Protein(g)"],
+                    label: item.Diet_type,
+                  })),
+                  backgroundColor: "rgba(16, 185, 129, 0.7)",
+                  pointRadius: 7,
+                  pointHoverRadius: 8,
+                },
+              ],
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                title: {
+                  display: true,
+                  text: "Protein vs Carbs by Diet Type",
+                },
+                tooltip: {
+                  callbacks: {
+                    label: function (context) {
+                      const point = context.raw;
+                      return `${point.label}: Protein ${point.y.toFixed(1)}g, Carbs ${point.x.toFixed(1)}g`;
+                    },
+                  },
+                },
+              },
+              scales: {
+                x: {
+                  title: {
+                    display: true,
+                    text: "Carbs (g)",
+                  },
+                },
+                y: {
+                  title: {
+                    display: true,
+                    text: "Protein (g)",
+                  },
+                },
+              },
+            },
+          });
+
+          // Generate a simple heatmap based on the same macro values
+          const heatmapContainer = document.getElementById("heatmap");
+          const heatmapRows = data.avg_macros;
+          const heatmapMax = Math.max(
+            ...heatmapRows.flatMap((item) => [
+              item["Protein(g)"],
+              item["Carbs(g)"],
+              item["Fat(g)"],
+            ]),
+          );
+          const getHeatColor = (value) => {
+            const alpha = 0.25 + (value / heatmapMax) * 0.7;
+            return `rgba(59, 130, 246, ${Math.max(alpha, 0.3)})`;
+          };
+          heatmapContainer.innerHTML = `
+            <div class="grid grid-cols-4 gap-2 text-xs text-gray-700">
+              <div class="font-semibold">Diet</div>
+              <div class="font-semibold">Protein</div>
+              <div class="font-semibold">Carbs</div>
+              <div class="font-semibold">Fat</div>
+              ${heatmapRows
+                .map(
+                  (item) => `
+                    <div class="p-2 rounded bg-gray-50">${item.Diet_type}</div>
+                    <div class="p-2 rounded" style="background:${getHeatColor(item["Protein(g)"])}">${item["Protein(g)"].toFixed(1)}</div>
+                    <div class="p-2 rounded" style="background:${getHeatColor(item["Carbs(g)"])}">${item["Carbs(g)"].toFixed(1)}</div>
+                    <div class="p-2 rounded" style="background:${getHeatColor(item["Fat(g)"])}">${item["Fat(g)"].toFixed(1)}</div>
+                  `,
+                )
+                .join("")}
+            </div>
+          `;
+
+          // Generate pie chart using the same protein values from the bar chart
+          const pieCtx = document.getElementById("pieChart").getContext("2d");
+          destroyChart(pieChart);
+          pieChart = new Chart(pieCtx, {
+            type: "pie",
+            data: {
+              labels: dietTypes,
+              datasets: [
+                {
+                  data: proteinValues,
+                  backgroundColor: [
+                    "rgba(59, 130, 246, 0.7)",
+                    "rgba(16, 185, 129, 0.7)",
+                    "rgba(234, 179, 8, 0.7)",
+                    "rgba(239, 68, 68, 0.7)",
+                    "rgba(139, 92, 246, 0.7)",
+                  ],
+                  borderWidth: 1,
+                },
+              ],
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                title: {
+                  display: true,
+                  text: "Protein Distribution by Diet Type",
+                },
+              },
             },
           });
 
